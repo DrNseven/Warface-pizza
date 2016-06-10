@@ -6,4 +6,4 @@ how to use:
 - launch warface, inject wfbot.dll into game.exe
 - press INSERT to toggle menu
 - use arrows to navigate
-set scope to aimkey for best accuracy
+- set scope to aimkey for best accuracy
