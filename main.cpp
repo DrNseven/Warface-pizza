@@ -83,7 +83,7 @@ HRESULT APIENTRY DrawIndexedPrimitiveHook(LPDIRECT3DDEVICE9 Device, D3DPRIMITIVE
 	//texCRC == 5acb22ec && NumVertices == 44 && primCount == 22 && decl->Type == 2 && numElements == 5 && vSize == 2120 && pSize == 788
 	//texCRC == a5948db9 && NumVertices == 48 && primCount == 24 && decl->Type == 2 && numElements == 5 && vSize == 2184 && pSize == 980
 	if(nosmoke == 1)
-	if ((decl->Type == 2 && numElements == 5) && (vSize == 2120|| vSize == 2184))
+	if ((decl->Type == 2 && numElements == 5) && (vSize >= 1832))//(vSize == 2120|| vSize == 2184|| vSize == 1832))
 	{
 		return D3D_OK;
 	}
@@ -235,8 +235,8 @@ HRESULT APIENTRY PresentHook(LPDIRECT3DDEVICE9 Device, CONST RECT *pSrcRect, CON
 			double DistX = AimInfo[BestTarget].vOutX - ScreenCenterX;
 			double DistY = AimInfo[BestTarget].vOutY - ScreenCenterY;
 
-			DistX /= aimsens;
-			DistY /= aimsens;
+			DistX /= (1+aimsens);
+			DistY /= (1+aimsens);
 
 			//aim
 			if (GetAsyncKeyState(Daimkey) & 0x8000)

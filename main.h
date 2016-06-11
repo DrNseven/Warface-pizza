@@ -363,7 +363,7 @@ void SaveSettings()
 	fout << "Aimfov " << aimfov << endl;
 	fout << "Esp " << esp << endl;
 	fout << "Autoshoot " << autoshoot << endl;
-	fout << "Nosmoke " << autoshoot << endl;
+	fout << "Nosmoke " << nosmoke << endl;
 	fout.close();
 }
 
@@ -604,7 +604,7 @@ void AddItem(LPDIRECT3DDEVICE9 pDevice, char *text, int &var, char **opt, int Ma
 char *opt_OnOff[] = { "[OFF]", "[ON]" };
 char *opt_Teams[] = { "[OFF]", "[Warface]", "[Blackwood]", "[All]" };
 char *opt_Keys[] = { "[OFF]", "[Shift]", "[RMouse]", "[LMouse]", "[Ctrl]", "[Alt]", "[Space]", "[X]", "[C]" };
-char *opt_Sensitivity[] = { "[OFF]", "[1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]" };
+char *opt_Sensitivity[] = { "[1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]" };
 char *opt_Aimheight[] = { "[0]", "[1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]" };
 char *opt_Aimfov[] = { "[0]", "[10%]", "[20%]", "[30%]", "[40%]", "[50%]", "[60%]", "[70%]", "[80%]", "[90%]" };
 char *opt_Autoshoot[] = { "[OFF]", "[OnKeyDown]", "[Auto]" };
@@ -628,7 +628,7 @@ void BuildMenu(LPDIRECT3DDEVICE9 pDevice)
 			MenuSelection++;
 
 		//Background
-		FillRGB(pDevice, 25, 38, 157, 125, TBlack);
+		FillRGB(pDevice, 25, 38, 157, 142, TBlack);
 
 		DrawBox(pDevice, 20, 15, 168, 20, DarkOutline);
 		cWriteText(105, 18, White, "WFbot");
@@ -639,7 +639,7 @@ void BuildMenu(LPDIRECT3DDEVICE9 pDevice)
 		AddItem(pDevice, " Wallhack", wallhack, opt_OnOff, 1);
 		AddItem(pDevice, " Aimbot", aimbot, opt_Teams, 3);
 		AddItem(pDevice, " Aimkey", aimkey, opt_Keys, 8);
-		AddItem(pDevice, " Aimsens", aimsens, opt_Sensitivity, 9);
+		AddItem(pDevice, " Aimsens", aimsens, opt_Sensitivity, 8);
 		AddItem(pDevice, " Aimheight", aimheight, opt_Aimheight, 9);
 		AddItem(pDevice, " Aimfov", aimfov, opt_Aimfov, 9);
 		AddItem(pDevice, " Autoshoot", autoshoot, opt_Autoshoot, 2);
