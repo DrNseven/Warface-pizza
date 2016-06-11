@@ -4,7 +4,7 @@ simple d3d multihack using crc and pic esp (target.png in Release directory)
 pizza ingredients:
 - grab models using GetDeclaration (compatibility)
 - get coordinates from shader
-- get crc of warface/blackwood signs and use that for
+- get crc of warface/blackwood signs 
 - pic esp without fps loss
 
 how to use:
