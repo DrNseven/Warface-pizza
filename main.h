@@ -7,29 +7,25 @@
 bool logger = false;
 int countnum = -1;
 
-bool FirstInit = false; //init only once
-
 //green, red texture
-LPDIRECT3DTEXTURE9 texWarface, texBlackwood, texBlue, texYellow;
+//LPDIRECT3DTEXTURE9 texWarface, texBlackwood, texBlue, texYellow;
 
 //texture
 D3DLOCKED_RECT pLockedRect;
 D3DSURFACE_DESC desc;
 IDirect3DTexture9* pCurrentTexture;
 
-//drawpic
-bool SpriteCreated0 = NULL;
-LPDIRECT3DTEXTURE9 IMAGE0;
-LPD3DXSPRITE SPRITE0;
-D3DXVECTOR3 ImagePos0;
+//elementcount
+D3DVERTEXELEMENT9 decl[MAXD3DDECLLENGTH];
+UINT numElements;
 
 //vertexshader
 IDirect3DVertexShader9* vShader;
 UINT vSize;
 
 //pixelshader
-//IDirect3DPixelShader9* pShader;
-//UINT pSize;
+IDirect3DPixelShader9* pShader;
+UINT pSize;
 
 //vertexshaderconstantf
 //UINT mStartRegister;
@@ -66,6 +62,8 @@ int aimheight = 6;				//aim height
 //autoshoot settings
 int autoshoot = 1;
 bool IsPressed = false;			//
+
+int nosmoke = 1;
 
 //timer
 DWORD frametime = timeGetTime();
@@ -115,6 +113,96 @@ DWORD QuickChecksum(DWORD *pData, int size)
 
 	return sum;
 }
+
+LPD3DXSPRITE lpSprite = NULL;
+LPDIRECT3DTEXTURE9 lpSpriteImage = NULL;
+bool bSpriteCreated = false;
+
+bool CreateOverlaySprite(IDirect3DDevice9* pd3dDevice)
+{
+	HRESULT hr;
+
+	hr = D3DXCreateTextureFromFile(pd3dDevice, GetDirectoryFile("target.png"), &lpSpriteImage); //png in hack dir
+	if(FAILED(hr))
+	{
+		//Log("D3DXCreateTextureFromFile failed");
+		bSpriteCreated = false;
+		return false;
+	}
+
+	hr = D3DXCreateSprite(pd3dDevice, &lpSprite);
+	if(FAILED(hr))
+	{
+		Log("D3DXCreateSprite failed");
+		bSpriteCreated = false;
+		return false;
+	}
+
+	bSpriteCreated = true;
+	
+	return true;
+}
+
+// COM utils
+template<class COMObject>
+void SafeRelease(COMObject*& pRes)
+{
+	IUnknown *unknown = pRes;
+	if (unknown)
+	{
+		unknown->Release();
+	}
+	pRes = NULL;
+}
+
+// This will get called before Device::Clear(). If the device has been reset
+// then all the work surfaces will be created again.
+void PreClear(IDirect3DDevice9* device)
+{
+	if (!bSpriteCreated)
+		CreateOverlaySprite(device);
+}
+
+// Delete work surfaces when device gets reset
+void DeleteRenderSurfaces()
+{
+	if (lpSprite != NULL)
+	{
+		//Log("SafeRelease(lpSprite)");
+		SafeRelease(lpSprite);
+	}
+
+	bSpriteCreated = false;
+}
+
+// This gets called right before the frame is presented on-screen - Device::Present().
+// First, create the display text, FPS and info message, on-screen. Then then call
+// CopySurfaceToTextureBuffer() to downsample the image and copy to shared memory
+void PrePresent(IDirect3DDevice9* Device, int cx, int cy)
+{
+	int textOffsetLeft;
+
+	//draw sprite
+	if (bSpriteCreated)
+	{
+		if (lpSprite != NULL && lpSprite != NULL)
+		{
+			D3DXVECTOR3 position;
+			position.x = (float)cx;
+			position.y = (float)cy;
+			position.z = 0.0f;
+
+			textOffsetLeft = (int)position.x; //for later to offset text from image
+
+			lpSprite->Begin(D3DXSPRITE_ALPHABLEND);
+			lpSprite->Draw(lpSpriteImage, NULL, NULL, &position, 0xFFFFFFFF);
+			lpSprite->End();
+		}
+	}
+
+	// draw text
+}
+
 
 HRESULT GenerateTexture(LPDIRECT3DDEVICE9 Device, IDirect3DTexture9 **ppD3Dtex, DWORD colour32)
 {
@@ -243,23 +331,23 @@ void AddAim(LPDIRECT3DDEVICE9 Device, int iTeam)
 // Desc: Saves Menu Item states for later Restoration
 //-----------------------------------------------------------------------------
 
-void Save(char* szSection, char* szKey, int iValue, LPCSTR file)
-{
-	char szValue[255];
-	sprintf_s(szValue, "%d", iValue);
-	WritePrivateProfileString(szSection, szKey, szValue, file);
-}
+//void Save(char* szSection, char* szKey, int iValue, LPCSTR file)
+//{
+	//char szValue[255];
+	//sprintf_s(szValue, "%d", iValue);
+	//WritePrivateProfileString(szSection, szKey, szValue, file);
+//}
 
 //-----------------------------------------------------------------------------
 // Name: Load()
 // Desc: Loads Menu Item States From Previously Saved File
 //-----------------------------------------------------------------------------
 
-int Load(char* szSection, char* szKey, int iDefaultValue, LPCSTR file)
-{
-	int iResult = GetPrivateProfileInt(szSection, szKey, iDefaultValue, file);
-	return iResult;
-}
+//int Load(char* szSection, char* szKey, int iDefaultValue, LPCSTR file)
+//{
+	//int iResult = GetPrivateProfileInt(szSection, szKey, iDefaultValue, file);
+	//return iResult;
+//}
 
 #include <string>
 #include <fstream>
@@ -275,6 +363,7 @@ void SaveSettings()
 	fout << "Aimfov " << aimfov << endl;
 	fout << "Esp " << esp << endl;
 	fout << "Autoshoot " << autoshoot << endl;
+	fout << "Nosmoke " << autoshoot << endl;
 	fout.close();
 }
 
@@ -291,6 +380,7 @@ void LoadSettings()
 	fin >> Word >> aimfov;
 	fin >> Word >> esp;
 	fin >> Word >> autoshoot;
+	fin >> Word >> nosmoke;
 	fin.close();
 }
 
@@ -516,7 +606,7 @@ char *opt_Teams[] = { "[OFF]", "[Warface]", "[Blackwood]", "[All]" };
 char *opt_Keys[] = { "[OFF]", "[Shift]", "[RMouse]", "[LMouse]", "[Ctrl]", "[Alt]", "[Space]", "[X]", "[C]" };
 char *opt_Sensitivity[] = { "[OFF]", "[1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]" };
 char *opt_Aimheight[] = { "[0]", "[1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]" };
-char *opt_Aimfov[] = { "[0]", "[1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]" };
+char *opt_Aimfov[] = { "[0]", "[10%]", "[20%]", "[30%]", "[40%]", "[50%]", "[60%]", "[70%]", "[80%]", "[90%]" };
 char *opt_Autoshoot[] = { "[OFF]", "[OnKeyDown]", "[Auto]" };
 
 void BuildMenu(LPDIRECT3DDEVICE9 pDevice)
@@ -554,12 +644,13 @@ void BuildMenu(LPDIRECT3DDEVICE9 pDevice)
 		AddItem(pDevice, " Aimfov", aimfov, opt_Aimfov, 9);
 		AddItem(pDevice, " Autoshoot", autoshoot, opt_Autoshoot, 2);
 		AddItem(pDevice, " Esp", esp, opt_Teams, 3);
+		AddItem(pDevice, " Nosmoke", nosmoke, opt_OnOff, 1);
 
 		if (MenuSelection >= Current)
 			MenuSelection = 1;
 
 		if (MenuSelection < 1)
-			MenuSelection = Current;
+			MenuSelection = 9;//Current;
 	}
 }
 

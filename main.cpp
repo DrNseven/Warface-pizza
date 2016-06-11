@@ -27,7 +27,8 @@ typedef HRESULT(WINAPI* Reset_t)					(LPDIRECT3DDEVICE9, D3DPRESENT_PARAMETERS*)
 typedef HRESULT(WINAPI *SetTexture_t)				(LPDIRECT3DDEVICE9, DWORD, IDirect3DBaseTexture9*);
 typedef HRESULT(WINAPI *SetVertexShader_t)			(LPDIRECT3DDEVICE9, IDirect3DVertexShader9*);
 //typedef HRESULT(WINAPI *SetVertexShaderConstantF_t)	(LPDIRECT3DDEVICE9, UINT, const float*, UINT);
-//typedef HRESULT(WINAPI *SetPixelShader_t)			(LPDIRECT3DDEVICE9, IDirect3DPixelShader9*);
+typedef HRESULT(WINAPI *SetPixelShader_t)			(LPDIRECT3DDEVICE9, IDirect3DPixelShader9*);
+typedef HRESULT(WINAPI *SetVertexDeclaration_t)		(LPDIRECT3DDEVICE9, IDirect3DVertexDeclaration9 *pDecl);
 
 
 CreateDevice_t CreateDevice;
@@ -38,22 +39,14 @@ Reset_t Reset;
 SetTexture_t SetTexture;
 SetVertexShader_t SetVertexShader;
 //SetVertexShaderConstantF_t SetVertexShaderConstantF;
-//SetPixelShader_t SetPixelShader;
+SetPixelShader_t SetPixelShader;
+SetVertexDeclaration_t SetVertexDeclaration;
 
 //=====================================================================================================================
 
 HRESULT APIENTRY DrawIndexedPrimitiveHook(LPDIRECT3DDEVICE9 Device, D3DPRIMITIVETYPE PrimType, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount)
 {
-	void* ReturnAddress = _ReturnAddress();
-
-	//grab models
-	IDirect3DVertexDeclaration9* pDecl;
-	Device->GetVertexDeclaration(&pDecl);
-	D3DVERTEXELEMENT9 decl[MAXD3DDECLLENGTH];
-	UINT numElements;
-	pDecl->GetDeclaration(decl, &numElements);
-	pDecl->Release();
-
+	//void* ReturnAddress = _ReturnAddress();
 	
 	//Aim at TEAM WARFACE
 	if ((aimbot == 1||esp==1) && (texCRC == 0x6d656cfc))
@@ -75,27 +68,37 @@ HRESULT APIENTRY DrawIndexedPrimitiveHook(LPDIRECT3DDEVICE9 Device, D3DPRIMITIVE
 
 	
 	//wallhack
-	if(wallhack == 1 && decl->Type == 16 && numElements == 7 && vSize == 2012)
+	if((wallhack == 1 && decl->Type == 16 && numElements == 7 && vSize == 2012) && (pSize == 808 || pSize == 640))
 	//(wallhack == 1 && ReturnAddress != NULL && ReturnAddress == (void *)WFPlayer))
 	{
-		//float sRed[4] = { 1.0f, 0.0f, 0.0f, 3.0f };
-		//Device->SetPixelShaderConstantF(12, sRed, 1);
 		//Device->SetTexture(0, texBlackwood);
 		Device->SetRenderState(D3DRS_ZENABLE, false);
 		DrawIndexedPrimitive(Device, PrimType, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 		Device->SetRenderState(D3DRS_ZENABLE, true);
-		//float sGreen[4] = { 0.0f, 1.0f, 0.0f, 3.0f };
-		//Device->SetPixelShaderConstantF(12, sGreen, 1);
 		//Device->SetTexture(0, texWarface);
 	}
 
+	//smoke?
+	//texCRC == 5acb22ec && NumVertices == 44 && primCount == 22 && decl->Type == 2 && numElements == 5 && vSize == 2120 && pSize == 788
+	//texCRC == 5acb22ec && NumVertices == 44 && primCount == 22 && decl->Type == 2 && numElements == 5 && vSize == 2120 && pSize == 788
+	//texCRC == a5948db9 && NumVertices == 48 && primCount == 24 && decl->Type == 2 && numElements == 5 && vSize == 2184 && pSize == 980
+	if(nosmoke == 1)
+	if ((decl->Type == 2 && numElements == 5) && (vSize == 2120|| vSize == 2184))
+	{
+		return D3D_OK;
+	}
 	
 	//fog?
+	//texCRC == d8092660 && NumVertices == 8 && primCount == 12 && decl->Type == 2 && numElements == 4 && vSize == 224 && pSize == 124
+	//texCRC == 5ae5a2cd && NumVertices == 24 && primCount == 12 && decl->Type == 16 && numElements == 10 && vSize == 968 && pSize == 664
+	//texCRC == 36ffff4e && NumVertices == 24 && primCount == 12 && decl->Type == 2 && numElements == 4 && vSize == 300 && pSize == 324
 	//Stride == 24 && texCRC == a4b0ecf0 && NumVertices == 4 && primCount == 2 && decl->Type == 2 && numElements == 6 && sdesc.Size == 589824
 	//Stride == 24 && texCRC == 10200a27 && NumVertices == 1196 && primCount == 2250 && decl->Type == 2 && numElements == 4 && sdesc.Size == 3145728
 
-	/*
+	
 	//small bruteforce logger
+	if (logger)
+	{
 		//hold down P key until a texture changes, press I to log values of those textures
 		if (GetAsyncKeyState('O') & 1) //-
 			countnum--;
@@ -106,13 +109,15 @@ HRESULT APIENTRY DrawIndexedPrimitiveHook(LPDIRECT3DDEVICE9 Device, D3DPRIMITIVE
 		if (countnum == vSize/10)
 			if (GetAsyncKeyState('I') & 1) //press I to log to log.txt
 				if (texCRC != 0)
-				Log("texCRC == %x && NumVertices == %d && primCount == %d && decl->Type == %d && numElements == %d && mStartRegister == %d && mVector4fCount == %d && vSize == %d && pSize == %d", texCRC, NumVertices, primCount, decl->Type, numElements, mStartRegister, mVector4fCount, vSize, pSize);
+				Log("texCRC == %x && NumVertices == %d && primCount == %d && decl->Type == %d && numElements == %d && vSize == %d && pSize == %d", texCRC, NumVertices, primCount, decl->Type, numElements, vSize, pSize);
 		if (countnum == vSize/10)
 		{
-			return D3D_OK; //delete texture
+			Device->SetPixelShader(NULL);
+			//return D3D_OK; //delete texture
 
 		}
-	*/
+	}
+	
 	
 	return DrawIndexedPrimitive(Device, PrimType, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 }
@@ -122,6 +127,9 @@ HRESULT APIENTRY DrawIndexedPrimitiveHook(LPDIRECT3DDEVICE9 Device, D3DPRIMITIVE
 bool DoInit = true;
 HRESULT APIENTRY PresentHook(LPDIRECT3DDEVICE9 Device, CONST RECT *pSrcRect, CONST RECT *pDestRect, HWND hDestWindow, CONST RGNDATA *pDirtyRegion)
 {
+	//sprite
+	PreClear(Device);
+
 	if (DoInit)
 	{
 		//get viewport
@@ -129,12 +137,9 @@ HRESULT APIENTRY PresentHook(LPDIRECT3DDEVICE9 Device, CONST RECT *pSrcRect, CON
 		ScreenCenterX = (float)Viewport.Width / 2.0f;
 		ScreenCenterY = (float)Viewport.Height / 2.0f;
 
-		//create sprite
-		D3DXCreateSprite(Device, &SPRITE0);
-
 		//generate texture once
-		GenerateTexture(Device, &texBlackwood, D3DCOLOR_ARGB(255, 255, 0, 0));
-		GenerateTexture(Device, &texWarface, D3DCOLOR_ARGB(255, 0, 255, 0));
+		//GenerateTexture(Device, &texBlackwood, D3DCOLOR_ARGB(255, 255, 0, 0));
+		//GenerateTexture(Device, &texWarface, D3DCOLOR_ARGB(255, 0, 255, 0));
 		//GenerateTexture(Device, &texBlue, D3DCOLOR_ARGB(255, 0, 0, 255));
 		//GenerateTexture(Device, &texYellow, D3DCOLOR_ARGB(255, 255, 0, 0));
 
@@ -148,7 +153,7 @@ HRESULT APIENTRY PresentHook(LPDIRECT3DDEVICE9 Device, CONST RECT *pSrcRect, CON
 		HRESULT hr = D3DXCreateFont(Device, 13, 0, FW_BOLD, 0, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, TEXT("Arial"), &pFont);
 
 		if (FAILED(hr)) {
-			//Log("D3DXCreateFont failed");
+			Log("D3DXCreateFont failed");
 		}
 	}
 
@@ -177,18 +182,8 @@ HRESULT APIENTRY PresentHook(LPDIRECT3DDEVICE9 Device, CONST RECT *pSrcRect, CON
 			{
 				if (esp == AimInfo[i].iTeam && AimInfo[i].vOutX > 1 && AimInfo[i].vOutY > 1)
 				{
-					if (SpriteCreated0 == FALSE)
-					{
-						D3DXCreateTextureFromFile(Device, GetDirectoryFile("target.png"), &IMAGE0); //png in hack dir
-						SpriteCreated0 = TRUE;
-					}
-					ImagePos0.x = (int)AimInfo[i].vOutX-32;
-					ImagePos0.y = (int)AimInfo[i].vOutY-20;
-					ImagePos0.z = 0.0f;
-
-					SPRITE0->Begin(D3DXSPRITE_ALPHABLEND);
-					SPRITE0->Draw(IMAGE0, NULL, NULL, &ImagePos0, 0xFFFFFFFF);
-					SPRITE0->End();
+					//drawpic
+					PrePresent(Device, (int)AimInfo[i].vOutX - 32, (int)AimInfo[i].vOutY - 20);
 					
 					//FillRGB(Device, (int)AimInfo[i].vOutX, (int)AimInfo[i].vOutY, 8, 8, D3DCOLOR_ARGB(255, 0, 255, 0));
 					//DrawBorder(Device, (int)AimInfo[i].vOutX - 9, (int)AimInfo[i].vOutY, 20, 30, 1, Green);
@@ -263,7 +258,7 @@ HRESULT APIENTRY PresentHook(LPDIRECT3DDEVICE9 Device, CONST RECT *pSrcRect, CON
 
 	if (autoshoot > 0 && IsPressed)
 	{
-		if (timeGetTime() >= (frametime + CLOCKS_PER_SEC / 2))//
+		if ((timeGetTime() - frametime >= 99)||(timeGetTime() >= (frametime + CLOCKS_PER_SEC / 2)))
 		{
 			mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
 			IsPressed = false;
@@ -271,14 +266,47 @@ HRESULT APIENTRY PresentHook(LPDIRECT3DDEVICE9 Device, CONST RECT *pSrcRect, CON
 		}
 	}
 
+	//logger
+	if ((GetAsyncKeyState(VK_MENU)) && (GetAsyncKeyState(VK_CONTROL)) && (GetAsyncKeyState(0x4C) & 1)) //ALT + CTRL + L toggles logger
+		logger = !logger;
+	if (pFont && logger) //&& countnum >= 0)
+	{
+		char szString[255];
+		sprintf_s(szString, "countnum = %d", countnum);
+		DrawString(pFont, 220, 100, White, (char*)&szString[0]);
+		DrawString(pFont, 220, 110, Yellow, "hold P to +");
+		DrawString(pFont, 220, 120, Yellow, "hold O to -");
+		DrawString(pFont, 220, 130, Green, "press I to log");
+	}
+
 	return Present(Device, pSrcRect, pDestRect, hDestWindow, pDirtyRegion);
+}
+
+//=====================================================================================================================
+
+HRESULT APIENTRY SetVertexDeclarationHook(LPDIRECT3DDEVICE9 Device, IDirect3DVertexDeclaration9* pDecl)
+{
+	if (pDecl != NULL)
+	{
+		HRESULT hr = pDecl->GetDeclaration(decl, &numElements);
+		if (FAILED(hr))
+		{
+			//Log("GetDeclaration failed");
+		}
+		//else if (numElements > 0)
+		//{
+			
+		//}
+	}
+
+	return SetVertexDeclaration(Device, pDecl);
 }
 
 //=====================================================================================================================
 
 HRESULT APIENTRY SetVertexShaderHook(LPDIRECT3DDEVICE9 Device, IDirect3DVertexShader9 *veShader)
 {
-	if (veShader)
+	if (veShader != NULL)
 	{
 		vShader = veShader;
 		vShader->GetFunction(NULL, &vSize);
@@ -289,16 +317,16 @@ HRESULT APIENTRY SetVertexShaderHook(LPDIRECT3DDEVICE9 Device, IDirect3DVertexSh
 
 //=====================================================================================================================
 
-//HRESULT APIENTRY SetPixelShaderHook(LPDIRECT3DDEVICE9 Device, IDirect3DPixelShader9 *piShader)
-//{
-	//if (piShader)
-	//{
-		//pShader = piShader;
-		//pShader->GetFunction(NULL, &pSize);
-	//}
+HRESULT APIENTRY SetPixelShaderHook(LPDIRECT3DDEVICE9 Device, IDirect3DPixelShader9 *piShader)
+{
+	if (piShader != NULL)
+	{
+		pShader = piShader;
+		pShader->GetFunction(NULL, &pSize);
+	}
 
-	//return SetPixelShader(Device, piShader);
-//}
+	return SetPixelShader(Device, piShader);
+}
 
 //=====================================================================================================================
 
@@ -325,31 +353,30 @@ HRESULT APIENTRY SetVertexShaderHook(LPDIRECT3DDEVICE9 Device, IDirect3DVertexSh
 
 HRESULT APIENTRY ResetHook(LPDIRECT3DDEVICE9 Device, D3DPRESENT_PARAMETERS* Params)
 {
+	DeleteRenderSurfaces();
+
 	if (pFont)
 		pFont->OnLostDevice();
 
 	HRESULT ResetReturn = Reset(Device, Params);
+
 	HRESULT cooperativeStat = Device->TestCooperativeLevel();
 
 	switch (cooperativeStat)
 	{
 	case D3DERR_DEVICELOST:
-		//Sleep(1000);
-		if (pFont)
-			pFont->OnLostDevice();
-		if (SPRITE0 != NULL) { SPRITE0->Release(); }SPRITE0 = NULL;
+		//Log("D3DERR_DEVICELOST");
 		break;
 	case D3DERR_DEVICENOTRESET:
-		if (pFont)
-			pFont->OnResetDevice();
-		if (SPRITE0 != NULL) { SPRITE0->Release(); }SPRITE0 = NULL;
+		//Log("D3DERR_DEVICENOTRESET");
 		break;
 	case D3DERR_DRIVERINTERNALERROR:
+		//Log("D3DERR_DRIVERINTERNALERROR");
 		break;
 	case D3D_OK:
 		break;
 	}
-
+	
 	if (SUCCEEDED(ResetReturn))
 	{
 		if (pFont)
@@ -358,7 +385,6 @@ HRESULT APIENTRY ResetHook(LPDIRECT3DDEVICE9 Device, D3DPRESENT_PARAMETERS* Para
 		Device->GetViewport(&Viewport);
 		ScreenCenterX = Viewport.Width / 2.0f;
 		ScreenCenterY = Viewport.Height / 2.0f;
-		//if (SPRITE0 != NULL) { SPRITE0->Release(); }SPRITE0 = NULL;
 	}
 
 	return ResetReturn;
@@ -417,7 +443,8 @@ HRESULT InitHooks()
 		SetVertexShader = (SetVertexShader_t)DetourFunction((PBYTE)VTable->SetVertexShader, (PBYTE)SetVertexShaderHook);
 		Reset = (Reset_t)DetourFunction((PBYTE)VTable->Reset, (PBYTE)ResetHook);
 		//SetVertexShaderConstantF = (SetVertexShaderConstantF_t)DetourFunction((PBYTE)VTable->SetVertexShaderConstantF, (PBYTE)SetVertexShaderConstantFHook);
-		//SetPixelShader = (SetPixelShader_t)DetourFunction((PBYTE)VTable->SetPixelShader, (PBYTE)SetPixelShaderHook);
+		SetPixelShader = (SetPixelShader_t)DetourFunction((PBYTE)VTable->SetPixelShader, (PBYTE)SetPixelShaderHook);
+		SetVertexDeclaration = (SetVertexDeclaration_t)DetourFunction((PBYTE)VTable->SetVertexDeclaration, (PBYTE)SetVertexDeclarationHook);
 		return 0;
 	}
 	else
