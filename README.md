@@ -15,8 +15,8 @@ how to use:
 - set scope to aimkey for best accuracy
  
 note to self, full model chams:
-if(texCRC == 0x4cb78f85)
-		Device->SetTexture(0, texBlackwood);
+texCRC == 0x4cb78f85
+Device->SetTexture(0, texBlackwood);
 
-	if(texCRC == 0x634b8fce)
-		Device->SetTexture(0, texWarface);
+texCRC == 0x634b8fce
+Device->SetTexture(0, texWarface);
