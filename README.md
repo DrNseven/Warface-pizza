@@ -14,5 +14,9 @@ how to use:
 - use arrows to navigate
 - set scope to aimkey for best accuracy
  
-any bugs? 
-yes
+note to self, full model chams:
+if(texCRC == 0x4cb78f85)
+		Device->SetTexture(0, texBlackwood);
+
+	if(texCRC == 0x634b8fce)
+		Device->SetTexture(0, texWarface);
