@@ -52,13 +52,13 @@ HRESULT APIENTRY DrawIndexedPrimitiveHook(LPDIRECT3DDEVICE9 Device, D3DPRIMITIVE
 	//void* ReturnAddress = _ReturnAddress();
 	
 	//Aim at TEAM WARFACE
-	if ((aimbot == 1||esp==1) && (texCRC == 0x6d656cfc|| texCRC == 0x634b8fce)) //sign, players
+	if ((aimbot == 1||esp==1) && (texCRC == 0x6d656cfc)) //sign, players
 	{
 		AddAim(Device, 1);
 	}
 
 	//Aim at TEAM BLACKWOOD
-	if ((aimbot == 2||esp==1) && (texCRC == 0xef209505|| texCRC == 0x4cb78f85)) //sign, players
+	if ((aimbot == 2||esp==1) && (texCRC == 0xef209505)) //sign, players
 	{
 		AddAim(Device, 2);
 	}
@@ -82,10 +82,10 @@ HRESULT APIENTRY DrawIndexedPrimitiveHook(LPDIRECT3DDEVICE9 Device, D3DPRIMITIVE
 	//texCRC == 4cb78f85 && NumVertices == 3116 && primCount == 3597 && decl->Type == 16 && numElements == 7 && vSize == 1592 && pSize == 2268
 	//texCRC == a6aed268 && NumVertices == 2525 && primCount == 2995 && decl->Type == 16 && numElements == 7 && vSize == 2292 && pSize == 2984
 	//chams team warface
-	if ((chams == 1 && decl->Type == 16 && numElements == 7) && (texCRC == 0x6d656cfc || texCRC == 0x634b8fce || texCRC == 0x6e0678c7|| texCRC == 0x6486f343))
+	if ((chams == 1 && decl->Type == 16 && numElements == 7) && (texCRC == 0x6d656cfc || texCRC == 0x634b8fce || texCRC == 0x6e0678c7|| texCRC == 0x6486f343)) //high, low, med
 	{
 		Device->SetRenderState(D3DRS_ZENABLE, false);
-		//float sGreen[4] = { 0.0f, 1.0f, 0.0f, 3.0f };
+		//float sGreen[4] = { 0.0f, 255.0f, 0.0f, 255.0f };
 		//Device->SetPixelShaderConstantF(12, sGreen, 1);
 		//Device->SetTexture(0, texWarface);
 		Device->SetPixelShader(shadDarkGreen);
@@ -102,6 +102,8 @@ HRESULT APIENTRY DrawIndexedPrimitiveHook(LPDIRECT3DDEVICE9 Device, D3DPRIMITIVE
 	{
 		Device->SetRenderState(D3DRS_ZENABLE, false);
 		Device->SetPixelShader(shadDarkRed);
+		//float sRed[4] = { 0.0f, 255.0f, 0.0f, 255.0f };
+		//Device->SetPixelShaderConstantF(12, sRed, 1);
 		//Device->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME);
 		DrawIndexedPrimitive(Device, PrimType, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 		//Device->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
@@ -204,7 +206,7 @@ HRESULT APIENTRY PresentHook(LPDIRECT3DDEVICE9 Device, CONST RECT *pSrcRect, CON
 	if (aimkey == 8) Daimkey = 0x43; //C
 
 	 //esp part 2
-	if (esp == 1 && AimInfo.size() != NULL)
+	if (esp > 0 && AimInfo.size() != NULL)
 	{
 		for (unsigned int i = 0; i < AimInfo.size(); i++)
 		{
