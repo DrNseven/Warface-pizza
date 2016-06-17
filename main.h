@@ -1,14 +1,14 @@
 //ret addr
 #pragma intrinsic(_ReturnAddress)
 //#define WFPlayer 0x84A73B //old
-#define WFPlayer 0xEA952A //new
+#define WFPlayer 0xEA952A
 
 //used for logging/cycling through values
 bool logger = false;
-int countnum = -1;
+int countnum = 12;
 
 //green, red texture
-//LPDIRECT3DTEXTURE9 texWarface, texBlackwood, texBlue, texYellow;
+LPDIRECT3DTEXTURE9 texWarface, texBlackwood, texBlue, texYellow;
 
 //texture
 D3DLOCKED_RECT pLockedRect;
@@ -49,6 +49,7 @@ void*								g_SelectedAddress = NULL;
 
 // settings
 int wallhack = 1;				//wallhack
+int chams = 1;					//chams
 int esp = 0;					//esp
 
 //aimbot settings
@@ -203,7 +204,6 @@ void PrePresent(IDirect3DDevice9* Device, int cx, int cy)
 	// draw text
 }
 
-
 HRESULT GenerateTexture(LPDIRECT3DDEVICE9 Device, IDirect3DTexture9 **ppD3Dtex, DWORD colour32)
 {
 	if (FAILED(Device->CreateTexture(8, 8, 1, 0, D3DFMT_A4R4G4B4, D3DPOOL_MANAGED, ppD3Dtex, NULL)))
@@ -223,6 +223,28 @@ HRESULT GenerateTexture(LPDIRECT3DDEVICE9 Device, IDirect3DTexture9 **ppD3Dtex, 
 
 	(*ppD3Dtex)->UnlockRect(0);
 
+	return S_OK;
+}
+
+IDirect3DPixelShader9 *shadRed;
+IDirect3DPixelShader9 *shadGreen;
+IDirect3DPixelShader9 *shadBlue;
+IDirect3DPixelShader9 *shadYellow;
+//generate shader
+HRESULT GenerateShader(IDirect3DDevice9 *pDevice, IDirect3DPixelShader9 **pShader, float r, float g, float b, float a, bool setzBuf)
+{
+	char szShader[256];
+	ID3DXBuffer *pShaderBuf = NULL;
+	D3DCAPS9 caps;
+	pDevice->GetDeviceCaps(&caps);
+	int PXSHVER1 = (D3DSHADER_VERSION_MAJOR(caps.PixelShaderVersion));
+	int PXSHVER2 = (D3DSHADER_VERSION_MINOR(caps.PixelShaderVersion));
+	if (setzBuf)
+		sprintf_s(szShader, "ps.%d.%d\ndef c0, %f, %f, %f, %f\nmov oC0,c0\nmov oDepth, c0.x", PXSHVER1, PXSHVER2, r, g, b, a);
+	else
+		sprintf_s(szShader, "ps.%d.%d\ndef c0, %f, %f, %f, %f\nmov oC0,c0", PXSHVER1, PXSHVER2, r, g, b, a);
+	D3DXAssembleShader(szShader, sizeof(szShader), NULL, NULL, 0, &pShaderBuf, NULL);
+	if (FAILED(pDevice->CreatePixelShader((const DWORD*)pShaderBuf->GetBufferPointer(), pShader)))return E_FAIL;
 	return S_OK;
 }
 
@@ -275,7 +297,7 @@ void AddAim(LPDIRECT3DDEVICE9 Device, int iTeam)
 	position.z = input.x * matrix._13 + input.y * matrix._23 + input.z * matrix._33 + matrix._43;
 	position.w = input.x * matrix._14 + input.y * matrix._24 + input.z * matrix._34 + matrix._44;
 
-	RealDistance = position.w;// Viewport.MinZ + position.z * (Viewport.MaxZ - Viewport.MinZ); //real distance
+	RealDistance = Viewport.MinZ + position.z * (Viewport.MaxZ - Viewport.MinZ); //real distance
 
 		xx = ((position.x / position.w) * (Viewport.Width / 2.0f)) + Viewport.X + (Viewport.Width / 2.0f);
 		yy = Viewport.Y + (Viewport.Height / 2.0f) - ((position.y / position.w) * (Viewport.Height / 2.0f));
@@ -356,12 +378,13 @@ void SaveSettings()
 	ofstream fout;
 	fout.open(GetDirectoryFile("wfsettings.ini"), ios::trunc);
 	fout << "Wallhack " << wallhack << endl;
+	fout << "Chams " << chams << endl;
+	fout << "Esp " << esp << endl;
 	fout << "Aimbot " << aimbot << endl;
 	fout << "Aimkey " << aimkey << endl;
 	fout << "Aimsens " << aimsens << endl;
 	fout << "Aimheight " << aimheight << endl;
 	fout << "Aimfov " << aimfov << endl;
-	fout << "Esp " << esp << endl;
 	fout << "Autoshoot " << autoshoot << endl;
 	fout << "Nosmoke " << nosmoke << endl;
 	fout.close();
@@ -373,12 +396,13 @@ void LoadSettings()
 	string Word = "";
 	fin.open(GetDirectoryFile("wfsettings.ini"), ifstream::in);
 	fin >> Word >> wallhack;
+	fin >> Word >> chams;
+	fin >> Word >> esp;
 	fin >> Word >> aimbot;
 	fin >> Word >> aimkey;
 	fin >> Word >> aimsens;
 	fin >> Word >> aimheight;
 	fin >> Word >> aimfov;
-	fin >> Word >> esp;
 	fin >> Word >> autoshoot;
 	fin >> Word >> nosmoke;
 	fin.close();
@@ -637,20 +661,21 @@ void BuildMenu(LPDIRECT3DDEVICE9 pDevice)
 		Current = 1;
 		//Category(pDevice, " [D3D]");
 		AddItem(pDevice, " Wallhack", wallhack, opt_OnOff, 1);
+		AddItem(pDevice, " Chams", chams, opt_OnOff, 1);
+		AddItem(pDevice, " Esp", esp, opt_Teams, 3);
 		AddItem(pDevice, " Aimbot", aimbot, opt_Teams, 3);
 		AddItem(pDevice, " Aimkey", aimkey, opt_Keys, 8);
 		AddItem(pDevice, " Aimsens", aimsens, opt_Sensitivity, 8);
 		AddItem(pDevice, " Aimheight", aimheight, opt_Aimheight, 9);
 		AddItem(pDevice, " Aimfov", aimfov, opt_Aimfov, 9);
 		AddItem(pDevice, " Autoshoot", autoshoot, opt_Autoshoot, 2);
-		AddItem(pDevice, " Esp", esp, opt_Teams, 3);
 		AddItem(pDevice, " Nosmoke", nosmoke, opt_OnOff, 1);
 
 		if (MenuSelection >= Current)
 			MenuSelection = 1;
 
 		if (MenuSelection < 1)
-			MenuSelection = 9;//Current;
+			MenuSelection = 10;//Current;
 	}
 }
 
