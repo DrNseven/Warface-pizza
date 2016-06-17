@@ -1,11 +1,12 @@
 //ret addr
 #pragma intrinsic(_ReturnAddress)
 //#define WFPlayer 0x84A73B //old
-#define WFPlayer 0xEA952A
+//#define WFPlayer 0xEA952A //old
+#define WFPlayer 0XEFD94A
 
 //used for logging/cycling through values
 bool logger = false;
-int countnum = 12;
+int countnum = -1;
 
 //green, red texture
 LPDIRECT3DTEXTURE9 texWarface, texBlackwood, texBlue, texYellow;
@@ -114,6 +115,59 @@ DWORD QuickChecksum(DWORD *pData, int size)
 
 	return sum;
 }
+
+//==========================================================================================================================
+
+//get distance
+float GetDistance(float Xx, float Yy, float xX, float yY)
+{
+	return sqrt((yY - Yy) * (yY - Yy) + (xX - Xx) * (xX - Xx));
+}
+
+//aim worldtoscreen
+struct AimInfo_t
+{
+	float vOutX, vOutY;
+	INT       iTeam;
+	//float RealDistance;
+	float CrosshairDistance;
+};
+std::vector<AimInfo_t>AimInfo;
+float RealDistance;
+
+void AddAim(LPDIRECT3DDEVICE9 Device, int iTeam)
+{
+	float xx, yy;
+	D3DXMATRIX matrix, worldmatrix, m1;
+	D3DXVECTOR4 position, input;
+
+	//Device->GetViewport(&Viewport);
+
+	Device->GetVertexShaderConstantF(36, m1, 4);
+	Device->GetVertexShaderConstantF(0, worldmatrix, 3);
+
+	input.x = worldmatrix._14;
+	input.y = worldmatrix._24;
+	input.z = worldmatrix._34 + (float)aimheight / 5.0f;
+
+	D3DXMatrixTranspose(&matrix, &m1);
+	//D3DXVec4Transform(&position, &input, &matrix);
+
+	position.x = input.x * matrix._11 + input.y * matrix._21 + input.z * matrix._31 + matrix._41;
+	position.y = input.x * matrix._12 + input.y * matrix._22 + input.z * matrix._32 + matrix._42;
+	position.z = input.x * matrix._13 + input.y * matrix._23 + input.z * matrix._33 + matrix._43;
+	position.w = input.x * matrix._14 + input.y * matrix._24 + input.z * matrix._34 + matrix._44;
+
+	RealDistance = Viewport.MinZ + position.z * (Viewport.MaxZ - Viewport.MinZ); //real distance
+
+	xx = ((position.x / position.w) * (Viewport.Width / 2.0f)) + Viewport.X + (Viewport.Width / 2.0f);
+	yy = Viewport.Y + (Viewport.Height / 2.0f) - ((position.y / position.w) * (Viewport.Height / 2.0f));
+
+	AimInfo_t pAimInfo = { static_cast<float>(xx), static_cast<float>(yy), iTeam };
+	AimInfo.push_back(pAimInfo);
+}
+
+//==========================================================================================================================
 
 LPD3DXSPRITE lpSprite = NULL;
 LPDIRECT3DTEXTURE9 lpSpriteImage = NULL;
@@ -228,6 +282,8 @@ HRESULT GenerateTexture(LPDIRECT3DDEVICE9 Device, IDirect3DTexture9 **ppD3Dtex, 
 
 IDirect3DPixelShader9 *shadRed;
 IDirect3DPixelShader9 *shadGreen;
+IDirect3DPixelShader9 *shadDarkRed;
+IDirect3DPixelShader9 *shadDarkGreen;
 IDirect3DPixelShader9 *shadBlue;
 IDirect3DPixelShader9 *shadYellow;
 //generate shader
@@ -256,57 +312,6 @@ void FillRGB(LPDIRECT3DDEVICE9 pDevice, int x, int y, int w, int h, D3DCOLOR col
 }
 
 //=====================================================================================================================
-
-//get distance
-float GetDistance(float Xx, float Yy, float xX, float yY)
-{
-	return sqrt((yY - Yy) * (yY - Yy) + (xX - Xx) * (xX - Xx));
-}
-
-//aim worldtoscreen
-struct AimInfo_t
-{
-	float vOutX, vOutY;
-	INT       iTeam;
-	//float RealDistance;
-	float CrosshairDistance;
-};
-std::vector<AimInfo_t>AimInfo;
-float RealDistance;
-
-void AddAim(LPDIRECT3DDEVICE9 Device, int iTeam)
-{
-	float xx, yy;
-	D3DXMATRIX matrix, worldmatrix, m1;
-	D3DXVECTOR4 position, input;
-
-	//Device->GetViewport(&Viewport);
-
-	Device->GetVertexShaderConstantF(36, m1, 4);
-	Device->GetVertexShaderConstantF(0, worldmatrix, 3);
-
-	input.x = worldmatrix._14;
-	input.y = worldmatrix._24;
-	input.z = worldmatrix._34 + (float)aimheight/5.0f;
-
-	D3DXMatrixTranspose(&matrix, &m1);
-	//D3DXVec4Transform(&position, &input, &matrix);
-
-	position.x = input.x * matrix._11 + input.y * matrix._21 + input.z * matrix._31 + matrix._41;
-	position.y = input.x * matrix._12 + input.y * matrix._22 + input.z * matrix._32 + matrix._42;
-	position.z = input.x * matrix._13 + input.y * matrix._23 + input.z * matrix._33 + matrix._43;
-	position.w = input.x * matrix._14 + input.y * matrix._24 + input.z * matrix._34 + matrix._44;
-
-	RealDistance = Viewport.MinZ + position.z * (Viewport.MaxZ - Viewport.MinZ); //real distance
-
-		xx = ((position.x / position.w) * (Viewport.Width / 2.0f)) + Viewport.X + (Viewport.Width / 2.0f);
-		yy = Viewport.Y + (Viewport.Height / 2.0f) - ((position.y / position.w) * (Viewport.Height / 2.0f));
-
-	AimInfo_t pAimInfo = { static_cast<float>(xx), static_cast<float>(yy), iTeam };
-	AimInfo.push_back(pAimInfo);
-}
-
-//==========================================================================================================================
 
 // colors
 #define Green				D3DCOLOR_ARGB(255, 000, 255, 000)
@@ -652,7 +657,7 @@ void BuildMenu(LPDIRECT3DDEVICE9 pDevice)
 			MenuSelection++;
 
 		//Background
-		FillRGB(pDevice, 25, 38, 157, 142, TBlack);
+		FillRGB(pDevice, 25, 38, 157, 157, TBlack);
 
 		DrawBox(pDevice, 20, 15, 168, 20, DarkOutline);
 		cWriteText(105, 18, White, "WFbot");

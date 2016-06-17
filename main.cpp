@@ -88,8 +88,10 @@ HRESULT APIENTRY DrawIndexedPrimitiveHook(LPDIRECT3DDEVICE9 Device, D3DPRIMITIVE
 		//float sGreen[4] = { 0.0f, 1.0f, 0.0f, 3.0f };
 		//Device->SetPixelShaderConstantF(12, sGreen, 1);
 		//Device->SetTexture(0, texWarface);
-		Device->SetPixelShader(shadBlue);
+		Device->SetPixelShader(shadDarkGreen);
+		//Device->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME);
 		DrawIndexedPrimitive(Device, PrimType, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
+		//Device->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
 		Device->SetRenderState(D3DRS_ZENABLE, true);
 		//Device->SetTexture(0, texWarface);
 		Device->SetPixelShader(shadGreen);
@@ -99,8 +101,10 @@ HRESULT APIENTRY DrawIndexedPrimitiveHook(LPDIRECT3DDEVICE9 Device, D3DPRIMITIVE
 	if ((chams == 1 && decl->Type == 16 && numElements == 7) && (texCRC == 0xef209505 || texCRC == 0x4cb78f85|| texCRC == 0xa6aed268 || texCRC == 0x192d8f3a|| texCRC == 0x255325e5))
 	{
 		Device->SetRenderState(D3DRS_ZENABLE, false);
-		Device->SetPixelShader(shadYellow);
+		Device->SetPixelShader(shadDarkRed);
+		//Device->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME);
 		DrawIndexedPrimitive(Device, PrimType, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
+		//Device->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
 		Device->SetRenderState(D3DRS_ZENABLE, true);
 		Device->SetPixelShader(shadRed);
 	}
@@ -111,19 +115,6 @@ HRESULT APIENTRY DrawIndexedPrimitiveHook(LPDIRECT3DDEVICE9 Device, D3DPRIMITIVE
 	{
 		return D3D_OK;
 	}
-
-	//if (texCRC == 0x6486f343)//226
-		//Device->SetTexture(0, texBlue);
-
-	//if (texCRC == 0x255325e5)
-		//Device->SetTexture(0, texYellow);
-
-	//if (texCRC == 0x5b082b08)
-		//Device->SetTexture(0, texBlue);
-
-	//if (texCRC == 0x56aa9d27)
-		//Device->SetTexture(0, texYellow);
-
 
 	
 	//small bruteforce logger
@@ -174,10 +165,12 @@ HRESULT APIENTRY PresentHook(LPDIRECT3DDEVICE9 Device, CONST RECT *pSrcRect, CON
 		GenerateTexture(Device, &texYellow, D3DCOLOR_ARGB(255, 255, 0, 0));
 
 		//generate shader
-		GenerateShader(Device, &shadRed, 1.0f, 0.0f, 0.0f, 0.5f, false);
-		GenerateShader(Device, &shadGreen, 0.0f, 1.0f, 0.0f, 0.5f, false);
-		GenerateShader(Device, &shadBlue, 0.0f, 0.0f, 1.0f, 0.5f, false);
-		GenerateShader(Device, &shadYellow, 1.0f, 1.0f, 0.0f, 0.5f, false);
+		GenerateShader(Device, &shadRed, 1.0f, 0.0f, 0.0f, 1.0f, false);
+		GenerateShader(Device, &shadGreen, 0.0f, 1.0f, 0.0f, 1.0f, false);
+		GenerateShader(Device, &shadDarkRed, 0.1f, 0.0f, 0.0f, 0.1f, false);
+		GenerateShader(Device, &shadDarkGreen, 0.0f, 0.1f, 0.0f, 0.1f, false);
+		GenerateShader(Device, &shadBlue, 0.0f, 0.0f, 1.0f, 0.5f, true);
+		GenerateShader(Device, &shadYellow, 1.0f, 1.0f, 0.0f, 0.5f, true);
 
 		LoadSettings();
 
@@ -211,23 +204,22 @@ HRESULT APIENTRY PresentHook(LPDIRECT3DDEVICE9 Device, CONST RECT *pSrcRect, CON
 	if (aimkey == 8) Daimkey = 0x43; //C
 
 	 //esp part 2
-	if (esp == 1 || esp == 2 || esp == 3)
-		if (AimInfo.size() != NULL)
+	if (esp == 1 && AimInfo.size() != NULL)
+	{
+		for (unsigned int i = 0; i < AimInfo.size(); i++)
 		{
-			for (unsigned int i = 0; i < AimInfo.size(); i++)
+			if (esp == AimInfo[i].iTeam && AimInfo[i].vOutX > 1 && AimInfo[i].vOutY > 1)
 			{
-				if (esp == AimInfo[i].iTeam && AimInfo[i].vOutX > 1 && AimInfo[i].vOutY > 1)
-				{
-					//drawpic
-					PrePresent(Device, (int)AimInfo[i].vOutX - 32, (int)AimInfo[i].vOutY - 20);
+				//drawpic
+				PrePresent(Device, (int)AimInfo[i].vOutX - 32, (int)AimInfo[i].vOutY - 20);
 					
-					//FillRGB(Device, (int)AimInfo[i].vOutX, (int)AimInfo[i].vOutY, 8, 8, D3DCOLOR_ARGB(255, 0, 255, 0));
-					//DrawBorder(Device, (int)AimInfo[i].vOutX - 9, (int)AimInfo[i].vOutY, 20, 30, 1, Green);
-					if(RealDistance > 5.0f)
-					DrawString(pFont, (int)AimInfo[i].vOutX - 9, (int)AimInfo[i].vOutY, Green, "%.f", RealDistance*2.0f);
-				}
+				//FillRGB(Device, (int)AimInfo[i].vOutX, (int)AimInfo[i].vOutY, 8, 8, D3DCOLOR_ARGB(255, 0, 255, 0));
+				//DrawBorder(Device, (int)AimInfo[i].vOutX - 9, (int)AimInfo[i].vOutY, 20, 30, 1, Green);
+				//if(RealDistance > 5.0f)
+				//DrawString(pFont, (int)AimInfo[i].vOutX - 9, (int)AimInfo[i].vOutY, Green, "%.f", RealDistance*2.0f);
 			}
 		}
+	}
 
 	//aimbot part 2
 	//if (aimbot > 0 && AimInfo.size() != NULL && GetAsyncKeyState(Daimkey))
@@ -377,7 +369,7 @@ HRESULT APIENTRY SetTextureHook(LPDIRECT3DDEVICE9 Device, DWORD Stage, IDirect3D
 		{
 			pCurrentTexture->GetLevelDesc(0, &desc);
 			if (desc.Pool == D3DPOOL_MANAGED) //warface
-											  //if (desc.Pool != D3DPOOL_MANAGED) //some other games
+			//if (desc.Pool != D3DPOOL_MANAGED) //some other games
 			{
 				pCurrentTexture->LockRect(0, &pLockedRect, NULL, D3DLOCK_NOOVERWRITE | D3DLOCK_READONLY);
 				//pCurrentTexture->LockRect(0, &pLockedRect, NULL, 0); //few other games
@@ -402,8 +394,6 @@ HRESULT APIENTRY CreateQueryHook(LPDIRECT3DDEVICE9 Device, D3DQUERYTYPE Type, ID
 	if (Type == D3DQUERYTYPE_OCCLUSION)
 	{
 		//returns a non zero value for the number of pixels visible, so they will always be drawn
-		//Type = D3DQUERYTYPE_EVENT;
-		//or
 		Type = D3DQUERYTYPE_TIMESTAMP;
 	}
 
