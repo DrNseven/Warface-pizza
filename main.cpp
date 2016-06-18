@@ -50,15 +50,15 @@ CreateQuery_t CreateQuery;
 HRESULT APIENTRY DrawIndexedPrimitiveHook(LPDIRECT3DDEVICE9 Device, D3DPRIMITIVETYPE PrimType, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount)
 {
 	//void* ReturnAddress = _ReturnAddress();
-	
+
 	//Aim at TEAM WARFACE
-	if ((aimbot == 1||esp==1) && (texCRC == 0x6d656cfc)) //sign, players
+	if ((aimbot == 1||esp==1) && (texCRC == 0x6d656cfc)) //sign
 	{
 		AddAim(Device, 1);
 	}
 
 	//Aim at TEAM BLACKWOOD
-	if ((aimbot == 2||esp==1) && (texCRC == 0xef209505)) //sign, players
+	if ((aimbot == 2||esp==2) && (texCRC == 0xef209505)) //sign
 	{
 		AddAim(Device, 2);
 	}
